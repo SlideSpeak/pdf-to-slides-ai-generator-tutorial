@@ -1,0 +1,9 @@
+fastapi==0.103.1
+uvicorn==0.23.2
+celery==5.3.4
+redis==5.0.0
+python-pptx==0.6.21
+python-multipart==0.0.6
+pydantic==2.3.0
+pydantic-settings==2.0.3
+flower==2.0.1
