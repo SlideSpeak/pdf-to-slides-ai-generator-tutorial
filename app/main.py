@@ -1,12 +1,30 @@
 import os
-from fastapi import FastAPI, BackgroundTasks, HTTPException
+from fastapi import (
+    FastAPI,
+    BackgroundTasks,
+    HTTPException,
+    UploadFile,
+    File,
+    Form,
+    Depends,
+)
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from celery.result import AsyncResult
+from typing import Optional
 
-from app.models import PresentationRequest, PresentationResponse, PresentationStatus
+from app.models import (
+    PresentationRequest,
+    PDFPresentationRequest,
+    PresentationResponse,
+    PresentationStatus,
+)
 from app.config import settings
-from celery_app.tasks import generate_presentation_task
+from app.pdf_processor import PDFProcessor
+from celery_app.tasks import (
+    generate_presentation_task,
+    generate_presentation_from_pdf_task,
+)
 
 app = FastAPI(title=settings.APP_NAME)
 
@@ -17,6 +35,35 @@ app.mount("/download", StaticFiles(directory=settings.STORAGE_PATH), name="downl
 async def create_presentation(request: PresentationRequest):
     """Submit a new presentation generation task"""
     task = generate_presentation_task.delay(request.model_dump())
+
+    return PresentationResponse(task_id=task.id)
+
+
+@app.post("/api/presentations/from-pdf", response_model=PresentationResponse)
+async def create_presentation_from_pdf(
+    pdf_file: UploadFile = File(...),
+    title: Optional[str] = Form(None),
+    author: str = Form("Generated Presentation"),
+    theme: str = Form("default"),
+    num_slides: int = Form(5),
+):
+    """Submit a presentation generation task from PDF file"""
+    if not pdf_file.filename.endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="File must be a PDF")
+
+    pdf_content = await pdf_file.read()
+
+    processor = PDFProcessor()
+    pdf_text = processor.extract_text_from_pdf(pdf_content)
+
+    request = PDFPresentationRequest(
+        title=title or f"Presentation based on {pdf_file.filename}",
+        author=author,
+        theme=theme,
+        num_slides=num_slides,
+    )
+
+    task = generate_presentation_from_pdf_task.delay(pdf_text, request.model_dump())
 
     return PresentationResponse(task_id=task.id)
 

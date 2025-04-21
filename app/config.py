@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://redis:6379/0"
     RESULT_BACKEND: str = "redis://redis:6379/0"
     STORAGE_PATH: str = "/app/storage"
+    OPENAI_API_KEY: str = ""
 
     class Config:
         env_file = ".env"

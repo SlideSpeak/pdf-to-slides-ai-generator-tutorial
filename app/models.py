@@ -28,6 +28,13 @@ class PresentationRequest(BaseModel):
     theme: Optional[str] = "default"
 
 
+class PDFPresentationRequest(BaseModel):
+    title: Optional[str] = None
+    author: Optional[str] = "Generated Presentation"
+    theme: Optional[str] = "default"
+    num_slides: Optional[int] = 5
+
+
 class PresentationResponse(BaseModel):
     task_id: str
     status: str = "pending"
